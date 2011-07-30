@@ -1,0 +1,16 @@
+Welcome to the BAD project AKA BodyAirDrum project !
+
+The goal of the project is to design a midi instrument that cordlessly triggers samples using wearable pads placed on the body.
+The system is composed of:
+ - 2 Arduinos
+ - 2 nRF24L01* radio transceivers
+ - 2 binary pads
+ - 2 mini-joysticks pads
+
+Enjoy !
+Jimmy & Drix.
+
+For any question, feel free to contact us : (jim or drix)@tangibledisplay.com
+
+
+*we used the nRF24L01 drivers from www.elecfreaks.com/480.html
