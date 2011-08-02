@@ -1,258 +1,77 @@
 #include <SPI.h>
-#include "API.h"
+#include "Mirf.h"
 #include "nRF24L01.h"
+#include "MirfHardwareSpiDriver.h"
 
-//***************************************************
-#define TX_ADR_WIDTH    5   // 5 unsigned chars TX(RX) address width
-#define TX_PLOAD_WIDTH  32  // 32 unsigned chars TX payload
+#define PAYLOAD sizeof(uint8_t)
+#define LED1 5
+#define LED2 6
+#define LED3 3
 
-unsigned char TX_ADDRESS[TX_ADR_WIDTH]  = 
-{
-  0x34,0x43,0x10,0x10,0x01
-}; // Define a static TX address
+#define SWITCH 2
+int stateSwitch = 0;
 
-unsigned char rx_buf[TX_PLOAD_WIDTH] = {0}; // initialize value
-unsigned char tx_buf[TX_PLOAD_WIDTH] = {0};
+#define POTAR 0
+int potarValue = 0;
 
-const int LED1= 5; //PWMled visual feedback 
-const int LED2= 6; //PWMled visual feedback 
-const int LED3= 7; //led visual feedback 
-const int SWITCH1 = 2; //BUTTON
-int stateSwitch = 0; 
-
-const int POTAR = 0; //POTENTIOMETER
-int potarValue = 0; 
-//***************************************************
-
-void setup() 
+void setup()
 {
   Serial.begin(9600);
-  pinMode(CE,  OUTPUT);
-  pinMode(CSN, OUTPUT);
-  pinMode(IRQ, INPUT);
-  SPI.begin();
-  delay(50);
-  init_io();                        // Initialize IO port
-  unsigned char sstatus=SPI_Read(STATUS);
-  Serial.println("*******************TX_Mode Start***************************");
-  Serial.print("status = ");    
-  Serial.println(sstatus,HEX);     // default value should be ‘E’
-  TX_Mode();                       // set TX mode
- 
-  pinMode(LED1,OUTPUT);
-  pinMode(LED2,OUTPUT);
-  pinMode(LED3,OUTPUT);
-  pinMode(SWITCH1,INPUT);
-  pinMode(POTAR, INPUT);           // POTENTIOMETER
+
+  Mirf.spi = &MirfHardwareSpi;
+  Mirf.cePin = 8;
+  Mirf.csnPin = 9;
+  Mirf.init();
+  Mirf.setTADDR((byte*)"abcde");
+  Mirf.payload = PAYLOAD;
+  Mirf.config();
+
+  pinMode(LED1, OUTPUT);
+  pinMode(LED2, OUTPUT);
+  pinMode(LED3, OUTPUT);
+  pinMode(SWITCH, INPUT);
+  pinMode(POTAR, INPUT);
 }
 
-void loop() 
+void loop()
 {
+  static uint8_t buf[PAYLOAD];
+
   triggerPad();
   readPotar();
 
-  if (stateSwitch == HIGH){
-    int k = 0;
+  if (stateSwitch == HIGH)
+    buf[0] = 1;
+  else
+    buf[0] = 0;
 
-    for(int i=0; i<32; i++)
-      tx_buf[i] = i;        
+  Mirf.send((byte*)buf);
 
-    // read register STATUS's value
-    unsigned char sstatus = SPI_Read(STATUS);                   
-    // if receive data ready (TX_DS) interrupt
-    if(sstatus & TX_DS)                                           
-    {
-      Serial.print("TX"); 
-      Serial.print(k); 
-      ledfeedback();
-      SPI_RW_Reg(FLUSH_TX,0);                                  
-      SPI_Write_Buf(WR_TX_PLOAD,tx_buf,2);       // write playload to TX_FIFO
-    }
-
-    // if receive data ready (MAX_RT) interrupt
-    if(sstatus & MAX_RT)                                         
-    {
-      Serial.print("MAX");    
-      SPI_RW_Reg(FLUSH_TX,0);
-      SPI_Write_Buf(WR_TX_PLOAD,tx_buf,2);       // disable standy-mode
-    }
-    SPI_RW_Reg(WRITE_REG+STATUS,sstatus);  
-    // clear RX_DR or TX_DS or MAX_RT interrupt flag
-  }
+  while(Mirf.isSending());
 }
 
-//**************************************************
-// Function: init_io();
-// Description:
-// flash led one time,chip enable(ready to TX or RX Mode),
-// Spi disable,Spi clock line init high
-//**************************************************
-void init_io(void)
-{
-  digitalWrite(IRQ, 0);
-  digitalWrite(CE, 0);			// chip enable
-  digitalWrite(CSN, 1);                 // Spi disable	
-}
-
-/************************************************************************
- **   * Function: SPI_RW();
- * 
- * Description:
- * Writes one unsigned char to nRF24L01, and return the unsigned char read
- * from nRF24L01 during write, according to SPI protocol
- ************************************************************************/
-unsigned char SPI_RW(unsigned char Byte)
-{
-  return SPI.transfer(Byte);
-}
-
-/**************************************************/
-
-/**************************************************
- * Function: SPI_RW_Reg();
- * 
- * Description:
- * Writes value 'value' to register 'reg'
-/**************************************************/
-unsigned char SPI_RW_Reg(unsigned char reg, unsigned char value)
-{
-  unsigned char status;
-
-  digitalWrite(CSN, 0);                   // CSN low, init SPI transaction
-  SPI_RW(reg);                            // select register
-  SPI_RW(value);                          // ..and write value to it..
-  digitalWrite(CSN, 1);                   // CSN high again
-
-  return(status);                   // return nRF24L01 status unsigned char
-}
-/**************************************************/
-
-/**************************************************
- * Function: SPI_Read();
- * 
- * Description:
- * Read one unsigned char from nRF24L01 register, 'reg'
-/**************************************************/
-unsigned char SPI_Read(unsigned char reg)
-{
-  unsigned char reg_val;
-
-  digitalWrite(CSN, 0);            // CSN low, initialize SPI communication...
-  SPI_RW(reg);                     // Select register to read from..
-  reg_val = SPI_RW(0);             // ..then read register value
-  digitalWrite(CSN, 1);            // CSN high, terminate SPI communication
-
-  return(reg_val);                 // return register value
-}
-/**************************************************/
-
-/**************************************************
- * Function: SPI_Read_Buf();
- * 
- * Description:
- * Reads 'unsigned chars' #of unsigned chars from register 'reg'
- * Typically used to read RX payload, Rx/Tx address
-/**************************************************/
-unsigned char SPI_Read_Buf(unsigned char reg,
-                           unsigned char *pBuf,
-                           unsigned char bytes)
-{
-  unsigned char sstatus,i;
-
-  digitalWrite(CSN, 0);  // Set CSN low, init SPI tranaction
-  sstatus = SPI_RW(reg); // Select register to write to and read status uchar
-
-  for(i=0;i<bytes;i++)
-  {
-    pBuf[i] = SPI_RW(0); // Perform SPI_RW to read unsigned char from nRF24L01
-  }
-
-  digitalWrite(CSN, 1);  // Set CSN high again
-
-  return(sstatus);       // return nRF24L01 status unsigned char
-}
-/**************************************************/
-
-/**************************************************
- * Function: SPI_Write_Buf();
- * 
- * Description:
- * Writes contents of buffer '*pBuf' to nRF24L01
- * Typically used to write TX payload, Rx/Tx address
-/**************************************************/
-unsigned char SPI_Write_Buf(unsigned char reg,
-                            unsigned char *pBuf,
-                            unsigned char bytes)
-{
-  unsigned char sstatus,i;
-
-  digitalWrite(CSN, 0);     // Set CSN low, init SPI tranaction
-  sstatus = SPI_RW(reg);    // Select register to write to and read status uchar
-  for(i=0;i<bytes; i++)     // then write all unsigned char in buffer(*pBuf)
-  {
-    SPI_RW(*pBuf++);
-  }
-  digitalWrite(CSN, 1);     // Set CSN high again
-  return(sstatus);          // return nRF24L01 status unsigned char
-}
-/**************************************************/
-
-/**************************************************
- * Function: TX_Mode();
- * 
- * Description:
- * This function initializes one nRF24L01 device to
- * TX mode, set TX address, set RX address for auto.ack,
- * fill TX payload, select RF channel, datarate & TX pwr.
- * PWR_UP is set, CRC(2 unsigned chars) is enabled, & PRIM:TX.
- * 
- * ToDo: One high pulse(>10us) on CE will now send this
- * packet and expext an acknowledgment from the RX device.
- **************************************************/
-void TX_Mode(void)
-{
-  digitalWrite(CE, 0);
-
-  // Writes TX_Address to nRF24L01
-  SPI_Write_Buf(WRITE_REG + TX_ADDR, TX_ADDRESS, TX_ADR_WIDTH);    
-  // RX_Addr0 same as TX_Adr for Auto.Ack
-  SPI_Write_Buf(WRITE_REG + RX_ADDR_P0, TX_ADDRESS, TX_ADR_WIDTH); 
-
-  SPI_RW_Reg(WRITE_REG | EN_AA, 0x01);      // Enable Auto.Ack:Pipe0
-  SPI_RW_Reg(WRITE_REG | EN_RXADDR, 0x01);  // Enable Pipe0
-  SPI_RW_Reg(WRITE_REG | SETUP_RETR, 0x1a); // 500us + 86us, 10 retrans...
-  SPI_RW_Reg(WRITE_REG | RF_CH, 40);        // Select RF channel 40
-  // TX_PWR:0dBm, Datarate:2Mbps, LNA:HCURR
-  SPI_RW_Reg(WRITE_REG | RF_SETUP, 0x07);   
-  // Set PWR_UP bit, enable CRC(2 uchars) & Prim:TX. MAX_RT & TX_DS enabled.
-  SPI_RW_Reg(WRITE_REG | CONFIG, 0x0e);     
-  SPI_Write_Buf(WR_TX_PLOAD,tx_buf,TX_PLOAD_WIDTH);
-
-  digitalWrite(CE, 1);
-}
-
-//////////////////////////////////////////////////////////////////////
 void ledfeedback()
 {
   digitalWrite(LED3, LOW);
-  delay(100);
+  delay(10);
   digitalWrite(LED3, HIGH);
-  delay(100);
+  delay(10);
   digitalWrite(LED3, LOW);
 }
 
 void triggerPad(){
-  stateSwitch = digitalRead(SWITCH1);
-  if (stateSwitch == HIGH) {
-    analogWrite(LED1, 255);
-  } 
+  stateSwitch = digitalRead(SWITCH);  // read input value
+  if (stateSwitch == HIGH) { // check if the input is HIGH (button released)
+    analogWrite(LED1, 255);  // turn LED OFF
+  }
   else {
-    analogWrite(LED1, 0);
+    analogWrite(LED1, 0);  // turn LED ON
   }
 }
 
 void readPotar(){
-  potarValue = analogRead(POTAR);  // read input value
-  analogWrite(LED2, potarValue/4);  // 10bits to 8 bits
+  //potarValue = analogRead(POTAR);  // read input value
+  //analogWrite(LED2, potarValue/4);  // 10bits to 8 bits
 }
+
 
