@@ -14,6 +14,10 @@ int stateSwitch = 0;
 #define POTAR 0
 int potarValue = 0;
 
+void ledfeedback();
+void triggerPad();
+void readPotar();
+
 void setup()
 {
   Serial.begin(9600);
