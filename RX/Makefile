@@ -29,7 +29,7 @@ ARDUINO_LIBS=SPI
 F_CPU=16000000
 
 # Port where we can find the arduino (Normaly ttyACM* or ttyUSB*)
-ARDUINO_PORT=/dev/ttyUSB0
+ARDUINO_PORT=/dev/ttyUSB1
 
 #Flash Settings
 # What programmer to use:

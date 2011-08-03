@@ -3,16 +3,20 @@
 #include "nRF24L01.h"
 #include "MirfHardwareSpiDriver.h"
 
-#define PAYLOAD sizeof(uint8_t)
+#define PAYLOAD 6
 #define LED1 5
 #define LED2 6
 #define LED3 3
 
 #define SWITCH 2
-int stateSwitch = 0;
+int stateSwitch = LOW;
 
-#define POTAR 0
-int potarValue = 0;
+#define POTAR_X 0
+#define POTAR_Y 1
+int potarValueX = 0;
+int potarValueY = 0;
+#define POTAR_SWITCH 4
+int potarSwitch = LOW;
 
 void ledfeedback();
 void triggerPad();
@@ -26,7 +30,7 @@ void setup()
   Mirf.cePin = 8;
   Mirf.csnPin = 9;
   Mirf.init();
-  Mirf.setTADDR((byte*)"abcde");
+  Mirf.setTADDR((byte*)"mangu");
   Mirf.payload = PAYLOAD;
   Mirf.config();
 
@@ -34,48 +38,52 @@ void setup()
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
   pinMode(SWITCH, INPUT);
-  pinMode(POTAR, INPUT);
+  pinMode(POTAR_X, INPUT);
+  pinMode(POTAR_Y, INPUT);
+  pinMode(POTAR_SWITCH, INPUT);
 }
 
 void loop()
 {
   static uint8_t buf[PAYLOAD];
+  static uint8_t previousState = 0;
+  uint8_t currentState = stateSwitch;
 
   triggerPad();
   readPotar();
 
-  if (stateSwitch == HIGH)
-    buf[0] = 1;
-  else
-    buf[0] = 0;
+  buf[0] = stateSwitch == HIGH ? 1 : 0;
+  buf[1] = potarSwitch == LOW ? 1 : 0;
+  buf[2] = (uint8_t)potarValueX;
+  buf[3] = (uint8_t)(potarValueX >> 8);
+  buf[4] = (uint8_t)potarValueY;
+  buf[5] = (uint8_t)(potarValueY >> 8);
 
-  Mirf.send((byte*)buf);
-
+  Mirf.send(buf);
   while(Mirf.isSending());
 }
 
-void ledfeedback()
+void triggerPad()
 {
-  digitalWrite(LED3, LOW);
-  delay(10);
-  digitalWrite(LED3, HIGH);
-  delay(10);
-  digitalWrite(LED3, LOW);
+  stateSwitch = digitalRead(SWITCH);
+
+  if (stateSwitch == HIGH)
+    analogWrite(LED1, 255);
+  else
+    analogWrite(LED1, 0);
 }
 
-void triggerPad(){
-  stateSwitch = digitalRead(SWITCH);  // read input value
-  if (stateSwitch == HIGH) { // check if the input is HIGH (button released)
-    analogWrite(LED1, 255);  // turn LED OFF
-  }
-  else {
-    analogWrite(LED1, 0);  // turn LED ON
-  }
+void readPotar()
+{
+  potarValueX = analogRead(POTAR_X);
+  potarValueY = analogRead(POTAR_Y);
+  potarSwitch = digitalRead(POTAR_SWITCH);
+
+  if (potarSwitch == LOW)
+    analogWrite(LED1, 255);
+  else
+    analogWrite(LED1, 0);
+
+  analogWrite(LED2, potarValueX / 4);
+  analogWrite(LED3, potarValueY / 4);
 }
-
-void readPotar(){
-  //potarValue = analogRead(POTAR);  // read input value
-  //analogWrite(LED2, potarValue/4);  // 10bits to 8 bits
-}
-
-

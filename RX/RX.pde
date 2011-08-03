@@ -1,21 +1,26 @@
 #include <SPI.h>
 #include "Mirf.h"
+#include "MIDI.h"
 #include "nRF24L01.h"
 #include "MirfHardwareSpiDriver.h"
 
-#define PAYLOAD sizeof(uint8_t)
+#define PAYLOAD 6
 #define LED1 7
 #define LED2 6
 
+void noteOn(int cmd, int pitch, int velocity);
+void pitchBend(int channel, int pitch);
+
 void setup()
 {
-  Serial.begin(9600);
+  // Set MIDI baud rate:
+  MIDI.begin();
 
   Mirf.spi = &MirfHardwareSpi;
   Mirf.cePin = 8;
   Mirf.csnPin = 9;
   Mirf.init();
-  Mirf.setRADDR((byte*)"abcde");
+  Mirf.setRADDR((byte*)"mangu");
   Mirf.payload = PAYLOAD;
   Mirf.config();
 
@@ -25,31 +30,49 @@ void setup()
 
 void loop()
 {
-  static byte data[PAYLOAD];
-  static int state = 0;
+  static uint8_t buf[PAYLOAD];
+  static int state[2] = {0};
+  static int note[2] = {41, 42};
+  static int led[2] = {LED1, LED2};
+  static int lastPitch = 0;
+  int pitch_x, pitch_y;
 
   if(Mirf.dataReady())
   {
-    Mirf.getData(data);
+    Mirf.getData(buf);
 
-    if (data[0])
+    for (int i = 0; i < 2; i++)
     {
-      if (state != 1)
+      if (buf[i])
       {
-        digitalWrite(LED2, LOW);
-        digitalWrite(LED1, HIGH);
-        state = 1;
+        if (state[i] == 0)
+        {
+          MIDI.sendNoteOn(note[i], 255, 1);
+          state[i] = 1;
+          digitalWrite(led[i], HIGH);
+        }
+      }
+      else
+      {
+        if (state[i] == 1)
+        {
+          MIDI.sendNoteOff(note[i], 0, 1);
+          state[i] = 0;
+          digitalWrite(led[i], LOW);
+        }
       }
     }
-    else
-    {
-      if (state != 2)
-      {
-        digitalWrite(LED1, LOW);
-        digitalWrite(LED2, HIGH);
-        state = 2;
-      }
-    }
+
+    pitch_x = (buf[2] | (buf[3] << 8)) * 0x4000 / 1024 - 0x2000;
+    pitch_y = (buf[4] | (buf[5] << 8)) * 0x4000 / 1024 - 0x2000;
+
+    //if (pitch != lastPitch)
+    //{
+    MIDI.sendPitchBend(pitch_x, 1);
+    //MIDI.sendPitchBend(pitch_y, 1);
+      //}
+
+      //lastPitch = pitch;
 
     Mirf.flushRx();
   }
