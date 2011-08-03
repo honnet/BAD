@@ -4,8 +4,6 @@ DEFINES = -DSERIAL_DEBUG -DMAX_RS485PIN=2 -DSER_DEVICE_TYPE=SLAVE -DDEVICE_ID=1 
 # available macro variables:
 # - BIG_ENDIAN
 
-BINDIR = ../bin
-
 #Generic settings!
 # The arduino directories
 ARDUINO_DIR=/usr/share/arduino

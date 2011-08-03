@@ -1,9 +1,9 @@
 #include <SPI.h>
+#include "common.h"
 #include "Mirf.h"
 #include "nRF24L01.h"
 #include "MirfHardwareSpiDriver.h"
 
-#define PAYLOAD 6
 #define LED1 5
 #define LED2 6
 #define LED3 3
@@ -27,10 +27,10 @@ void setup()
   Serial.begin(9600);
 
   Mirf.spi = &MirfHardwareSpi;
-  Mirf.cePin = 8;
-  Mirf.csnPin = 9;
+  Mirf.cePin = CE;
+  Mirf.csnPin = CSN;
   Mirf.init();
-  Mirf.setTADDR((byte*)"mangu");
+  Mirf.setTADDR(ADDR);
   Mirf.payload = PAYLOAD;
   Mirf.config();
 

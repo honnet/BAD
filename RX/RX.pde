@@ -1,4 +1,5 @@
 #include <SPI.h>
+#include "common.h"
 #include "Mirf.h"
 #include "MIDI.h"
 #include "nRF24L01.h"
@@ -17,10 +18,10 @@ void setup()
   MIDI.begin();
 
   Mirf.spi = &MirfHardwareSpi;
-  Mirf.cePin = 8;
-  Mirf.csnPin = 9;
+  Mirf.cePin = CE;
+  Mirf.csnPin = CSN;
   Mirf.init();
-  Mirf.setRADDR((byte*)"mangu");
+  Mirf.setRADDR(ADDR);
   Mirf.payload = PAYLOAD;
   Mirf.config();
 
