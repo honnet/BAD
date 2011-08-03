@@ -5,9 +5,8 @@
 #include "nRF24L01.h"
 #include "MirfHardwareSpiDriver.h"
 
-#define PAYLOAD 6
-#define LED1 7
-#define LED2 6
+#define LED1 0
+#define LED2 0
 
 void noteOn(int cmd, int pitch, int velocity);
 void pitchBend(int channel, int pitch);
@@ -15,7 +14,7 @@ void pitchBend(int channel, int pitch);
 void setup()
 {
   // Set MIDI baud rate:
-  MIDI.begin();
+  //MIDI.begin();
 
   Mirf.spi = &MirfHardwareSpi;
   Mirf.cePin = CE;
@@ -27,6 +26,8 @@ void setup()
 
   pinMode(LED1, OUTPUT);
   pinMode(LED2, OUTPUT);
+  digitalWrite(LED1, LOW);
+  digitalWrite(LED2, LOW);
 }
 
 void loop()
@@ -42,13 +43,13 @@ void loop()
   {
     Mirf.getData(buf);
 
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 1; i++)
     {
       if (buf[i])
       {
         if (state[i] == 0)
         {
-          MIDI.sendNoteOn(note[i], 255, 1);
+          //MIDI.sendNoteOn(note[i], 255, 1);
           state[i] = 1;
           digitalWrite(led[i], HIGH);
         }
@@ -57,23 +58,23 @@ void loop()
       {
         if (state[i] == 1)
         {
-          MIDI.sendNoteOff(note[i], 0, 1);
+          //MIDI.sendNoteOff(note[i], 0, 1);
           state[i] = 0;
           digitalWrite(led[i], LOW);
         }
       }
     }
 
-    pitch_x = (buf[2] | (buf[3] << 8)) * 0x4000 / 1024 - 0x2000;
-    pitch_y = (buf[4] | (buf[5] << 8)) * 0x4000 / 1024 - 0x2000;
-
-    //if (pitch != lastPitch)
-    //{
-    MIDI.sendPitchBend(pitch_x, 1);
-    //MIDI.sendPitchBend(pitch_y, 1);
-      //}
-
-      //lastPitch = pitch;
+    //pitch_x = (buf[2] | (buf[3] << 8)) * 0x4000 / 1024 - 0x2000;
+    //pitch_y = (buf[4] | (buf[5] << 8)) * 0x4000 / 1024 - 0x2000;
+    //
+    ////if (pitch != lastPitch)
+    ////{
+    //MIDI.sendPitchBend(pitch_x, 1);
+    ////MIDI.sendPitchBend(pitch_y, 1);
+    ////}
+    //
+    ////lastPitch = pitch;
 
     Mirf.flushRx();
   }

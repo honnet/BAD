@@ -4,9 +4,9 @@
 #include "nRF24L01.h"
 #include "MirfHardwareSpiDriver.h"
 
-#define LED1 5
-#define LED2 6
-#define LED3 3
+#define LED1 0
+//#define LED2 3
+//#define LED3 5
 
 #define SWITCH 2
 int stateSwitch = LOW;
@@ -24,8 +24,6 @@ void readPotar();
 
 void setup()
 {
-  Serial.begin(9600);
-
   Mirf.spi = &MirfHardwareSpi;
   Mirf.cePin = CE;
   Mirf.csnPin = CSN;
@@ -35,12 +33,13 @@ void setup()
   Mirf.config();
 
   pinMode(LED1, OUTPUT);
-  pinMode(LED2, OUTPUT);
-  pinMode(LED3, OUTPUT);
-  pinMode(SWITCH, INPUT);
-  pinMode(POTAR_X, INPUT);
-  pinMode(POTAR_Y, INPUT);
-  pinMode(POTAR_SWITCH, INPUT);
+  //pinMode(LED2, OUTPUT);
+  //pinMode(LED3, OUTPUT);
+  //pinMode(SWITCH, INPUT);
+  //pinMode(POTAR_X, INPUT);
+  //pinMode(POTAR_Y, INPUT);
+  //pinMode(POTAR_SWITCH, INPUT);
+  //digitalWrite(LED1, HIGH);
 }
 
 void loop()
@@ -48,42 +47,45 @@ void loop()
   static uint8_t buf[PAYLOAD];
   static uint8_t previousState = 0;
   uint8_t currentState = stateSwitch;
+  static int i = 0;
 
   triggerPad();
   readPotar();
 
   buf[0] = stateSwitch == HIGH ? 1 : 0;
-  buf[1] = potarSwitch == LOW ? 1 : 0;
-  buf[2] = (uint8_t)potarValueX;
-  buf[3] = (uint8_t)(potarValueX >> 8);
-  buf[4] = (uint8_t)potarValueY;
-  buf[5] = (uint8_t)(potarValueY >> 8);
+  //buf[1] = potarSwitch == LOW ? 1 : 0;
+  //buf[2] = (uint8_t)potarValueX;
+  //buf[3] = (uint8_t)(potarValueX >> 8);
+  //buf[4] = (uint8_t)potarValueY;
+  //buf[5] = (uint8_t)(potarValueY >> 8);
 
   Mirf.send(buf);
   while(Mirf.isSending());
+
+  delay(100);
 }
 
 void triggerPad()
 {
-  stateSwitch = digitalRead(SWITCH);
+  stateSwitch = stateSwitch == HIGH ? LOW : HIGH; //digitalRead(SWITCH);
 
   if (stateSwitch == HIGH)
-    analogWrite(LED1, 255);
+    digitalWrite(LED1, HIGH);
   else
-    analogWrite(LED1, 0);
+    digitalWrite(LED1, LOW);
 }
 
 void readPotar()
 {
-  potarValueX = analogRead(POTAR_X);
-  potarValueY = analogRead(POTAR_Y);
-  potarSwitch = digitalRead(POTAR_SWITCH);
-
-  if (potarSwitch == LOW)
-    analogWrite(LED1, 255);
-  else
-    analogWrite(LED1, 0);
-
-  analogWrite(LED2, potarValueX / 4);
-  analogWrite(LED3, potarValueY / 4);
+  //potarValueX = analogRead(POTAR_X);
+  //potarValueY = analogRead(POTAR_Y);
+  //potarSwitch = digitalRead(POTAR_SWITCH);
+  //
+  //if (potarSwitch == LOW)
+  //  analogWrite(LED1, 255);
+  //else
+  //  analogWrite(LED1, 0);
+  //
+  //analogWrite(LED2, potarValueX / 4);
+  //analogWrite(LED3, potarValueY / 4);
 }

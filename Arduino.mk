@@ -203,6 +203,7 @@ TARGETS    = $(OBJDIR)/$(TARGET).*
 DEP_FILE   = $(OBJDIR)/depends.mk
 
 # Names of executables
+TEENSYLOADER = teensy-loader-cli
 CC      = $(AVR_TOOLS_PATH)/avr-gcc
 CXX     = $(AVR_TOOLS_PATH)/avr-g++
 OBJCOPY = $(AVR_TOOLS_PATH)/avr-objcopy
@@ -223,6 +224,21 @@ CFLAGS        = -std=gnu99
 CXXFLAGS      = -fno-exceptions
 ASFLAGS       = -mmcu=$(MCU) -I./$(SRC)/ -x assembler-with-cpp
 LDFLAGS       = -mmcu=$(MCU) -lm -Wl,--gc-sections -Os
+TEENSYFLAGS   = -mmcu=$(MCU) -w -v
+
+AVRFLASH      = $(AVRDUDE) $(AVRDUDE_COM_OPTS) 		\
+		$(AVRDUDE_ARD_OPTS) 			\
+		-U flash:w:$(TARGET_HEX):i
+
+TEENSYFLASH   = $(TEENSYLOADER) $(TEENSYFLAGS) $(TARGET_HEX)
+
+ifdef TEENSY
+FLASH = $(TEENSYFLASH)
+RESET =
+else
+FLASH = $(AVRFLASH)
+RESET = $(BINDIR)/reset.py $(ARD_PORT) $(AVRDUDE_ARD_BAUDRATE)
+endif
 
 # Rules for making a CPP file from the main sketch (.cpe)
 PDEHEADER     = \\\#include \"WProgram.h\"
@@ -382,15 +398,13 @@ $(DEP_FILE):	$(OBJDIR) $(DEPS)
 upload:		reset raw_upload
 
 raw_upload:	$(TARGET_HEX) kill
-		$(AVRDUDE) $(AVRDUDE_COM_OPTS) 		\
-		$(AVRDUDE_ARD_OPTS) 			\
-		-U flash:w:$(TARGET_HEX):i
+		$(FLASH)
 
 # BSD stty likes -F, but GNU stty likes -f/--file.  Redirecting
 # stdin/out appears to work but generates a spurious error on MacOS at
 # least. Perhaps it would be better to just do it in perl ?
 reset:
-	$(BINDIR)/reset.py $(ARD_PORT) $(AVRDUDE_ARD_BAUDRATE)
+		$(RESET)
 
 ispload:	$(TARGET_HEX) kill
 		$(AVRDUDE) $(AVRDUDE_COM_OPTS) $(AVRDUDE_ISP_OPTS) -e \
