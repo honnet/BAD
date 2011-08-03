@@ -8,6 +8,9 @@
  *  license		GPL Forty Seven Effects - 2011
  */
 
+#ifdef TEENSY
+# include "usb_api.h"
+#endif
 #include "MIDI.h"
 #include <stdlib.h>
 #include "WConstants.h" 
