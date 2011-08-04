@@ -4,28 +4,23 @@
 #include "nRF24L01.h"
 #include "MirfHardwareSpiDriver.h"
 
-#define LED1 5
-#define LED2 6
-#define LED3 3
+#define LED     11
+#define LED_PWM 12
 
-#define SWITCH 2
-int stateSwitch = LOW;
+enum {SWITCH1, SWITCH2, SWITCH3, SWITCH4, SWITCH_NUM};
+char stateSwitch[SWITCH_NUM] = {0};
 
-#define POTAR_X 0
-#define POTAR_Y 1
-int potarValueX = 0;
-int potarValueY = 0;
-#define POTAR_SWITCH 4
-int potarSwitch = LOW;
+#define JOYSTK_X 4
+#define JOYSTK_Y 5
+char joystkValueX = 0;
+char joystkValueY = 0;
 
 void ledfeedback();
 void triggerPad();
-void readPotar();
+void readJoystk();
 
 void setup()
 {
-  Serial.begin(9600);
-
   Mirf.spi = &MirfHardwareSpi;
   Mirf.cePin = CE;
   Mirf.csnPin = CSN;
@@ -34,30 +29,25 @@ void setup()
   Mirf.payload = PAYLOAD;
   Mirf.config();
 
-  pinMode(LED1, OUTPUT);
-  pinMode(LED2, OUTPUT);
-  pinMode(LED3, OUTPUT);
-  pinMode(SWITCH, INPUT);
-  pinMode(POTAR_X, INPUT);
-  pinMode(POTAR_Y, INPUT);
-  pinMode(POTAR_SWITCH, INPUT);
+  pinMode(LED, OUTPUT);
+  pinMode(LED_PWM, OUTPUT);
+  for (int i=SWITCH1; i<SWITCH_NUM; i++) // 0 to 3
+    pinMode(i, INPUT);
+  pinMode(JOYSTK_X, INPUT);
+  pinMode(JOYSTK_Y, INPUT);
 }
 
 void loop()
 {
   static uint8_t buf[PAYLOAD];
-  static uint8_t previousState = 0;
-  uint8_t currentState = stateSwitch;
 
   triggerPad();
-  readPotar();
+  readJoystk();
 
-  buf[0] = stateSwitch == HIGH ? 1 : 0;
-  buf[1] = potarSwitch == LOW ? 1 : 0;
-  buf[2] = (uint8_t)potarValueX;
-  buf[3] = (uint8_t)(potarValueX >> 8);
-  buf[4] = (uint8_t)potarValueY;
-  buf[5] = (uint8_t)(potarValueY >> 8);
+  for (int i=SWITCH1; i<SWITCH_NUM; i++) // 0 to 3
+    buf[i] = stateSwitch[i];
+  buf[4] = (uint8_t)(joystkValueX >> 2);
+  buf[5] = (uint8_t)(joystkValueY >> 2);
 
   Mirf.send(buf);
   while(Mirf.isSending());
@@ -65,25 +55,21 @@ void loop()
 
 void triggerPad()
 {
-  stateSwitch = digitalRead(SWITCH);
-
-  if (stateSwitch == HIGH)
-    analogWrite(LED1, 255);
-  else
-    analogWrite(LED1, 0);
+  char accu = 0;
+  for (int i=SWITCH1; i<SWITCH_NUM; i++)
+  {
+    stateSwitch[i] = digitalRead(i);
+    accu |= stateSwitch[i]; //switch the led on only if one of the state was high
+  }
+  digitalWrite(LED, accu);
 }
 
-void readPotar()
+void readJoystk()
 {
-  potarValueX = analogRead(POTAR_X);
-  potarValueY = analogRead(POTAR_Y);
-  potarSwitch = digitalRead(POTAR_SWITCH);
+  joystkValueX = analogRead(JOYSTK_X);
+  joystkValueY = analogRead(JOYSTK_Y);
 
-  if (potarSwitch == LOW)
-    analogWrite(LED1, 255);
-  else
-    analogWrite(LED1, 0);
-
-  analogWrite(LED2, potarValueX / 4);
-  analogWrite(LED3, potarValueY / 4);
+  analogWrite(LED_PWM, (joystkValueX+joystkValueY)>>3); // divide by 2**3
 }
+
+

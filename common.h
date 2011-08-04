@@ -5,5 +5,6 @@
 #define CE 10
 #define CSN 9
 #define ADDR ((byte*)"mangu")
+#define PAYLOAD 6
 
 #endif
