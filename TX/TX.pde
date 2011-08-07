@@ -13,12 +13,12 @@ enum {
   PAD4 = 19,
   PAD_N = 4
 };
-char stateSwitch[PAD_N] = {0};
+int8_t stateSwitch[PAD_N] = {0};
 
 #define JOYSTK_X 14
 #define JOYSTK_Y 13
-char joystkValueX = 0;
-char joystkValueY = 0;
+int16_t joystkValueX = 0;
+int16_t joystkValueY = 0;
 
 void hello();
 void readPad();
@@ -48,12 +48,12 @@ void loop()
   static uint8_t buf[PAYLOAD];
 
   readPad();
-  for (int i=0; i<PAD_N; i++)
+  for (int8_t i=0; i<PAD_N; i++)
     buf[i] = stateSwitch[i];
 
   readJoystk();
-  buf[PAYLOAD-2] = joystkValueX;
-  buf[PAYLOAD-1] = joystkValueY;
+  buf[PAYLOAD-2] = (uint8_t)joystkValueX;
+  buf[PAYLOAD-1] = (uint8_t)joystkValueY;
 
   Mirf.send(buf);
   while(Mirf.isSending());
@@ -62,8 +62,8 @@ void loop()
 
 void readPad()
 {
-  char accu = 0;
-  for (int i=0; i<PAD_N; i++)
+  uint8_t accu = 0;
+  for (uint8_t i=0; i<PAD_N; i++)
   {
     stateSwitch[i] = digitalRead(i+PAD1);
     accu |= stateSwitch[i]; //switch the led on only if one of the state was high
@@ -83,7 +83,7 @@ void readJoystk()
 
 void hello()
 {
-  for (int i=0; i<6; i++)
+  for (uint8_t i=0; i<6; i++)
   {
     digitalWrite(LED, HIGH);
     delay(50);

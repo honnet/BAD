@@ -1,13 +1,13 @@
- * soft :
-finir le traitement du joystick
-interruption sur les pads pour plus de réactivité !!
-chaine de compilation => éviter le reset à chaque flash
-hacker le bootloader/firmware usb-midi (changer le nom)
-optimiser consommation & fiabilité
-site web, vidéos, photos...
+soft :
+ * finish the joystick processing
+ * interruptions on pads for a better reactivity
+ * hack the compiler-upload chain to avoid mandatory reset at each upload
+ * hack the bootloader/firmware of usb-midi (to change the midi device name)
+ * optimiser consumption & reliability
+ * website, videos, pictures...
 
- * hard :
-tester pads en mousse/piezzo/etc.
-tester differentes alimentations (pile + découpage/régulateur/etc.)
-faire quand meme une sortie midi non-usb ?
+hard :
+ * test new pads in foam rubber, piezzo or other ?
+ * test different alimentation (battery + switched-mode power supply / voltage regulator...)
+ * put a non-usb midi output anyway ?
 
