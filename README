@@ -4,20 +4,16 @@ The goal of the project is to design a midi instrument that cordlessly triggers 
 The system is composed of:
  - 2 Arduinos
  - 2 nRF24L01* radio transceivers
- - 2 binary pads
- - 2 mini-joysticks pads
+ - 4 binary pads
+ - 1 mini-joystick pad
 
 Enjoy !
-Jimmy & Drix.
+Jimmy & Drix with the phenomenal help of Clement Moussu.
 
 For any question, feel free to contact us : (jim or drix)@tangibledisplay.com
 
 
-*we used the nRF24L01 drivers from www.elecfreaks.com/480.html
+*we used the nRF24L01 drivers from https://github.com/aaronds/arduino-nrf24l01
 An Arduino port of the tinkerer.eu library. It works with the Sparkfun nRF24L01+ modules.
 
 http://www.arduino.cc/playground/InterfacingWithHardware/Nrf24L01
-
-Zip file to be extracted in the Arduino libraries folder:
-
-http://github.com/aaronds/arduino-nrf24l01/downloads
