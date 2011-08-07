@@ -1,0 +1,13 @@
+ * soft :
+finir le traitement du joystick
+interruption sur les pads pour plus de réactivité !!
+chaine de compilation => éviter le reset à chaque flash
+hacker le bootloader/firmware usb-midi (changer le nom)
+optimiser consommation & fiabilité
+site web, vidéos, photos...
+
+ * hard :
+tester pads en mousse/piezzo/etc.
+tester differentes alimentations (pile + découpage/régulateur/etc.)
+faire quand meme une sortie midi non-usb ?
+
