@@ -1,19 +1,24 @@
 #include <SPI.h>
 #include "common.h"
 #include "Mirf.h"
-#include "MIDI.h"
 #include "nRF24L01.h"
 #include "MirfHardwareSpiDriver.h"
 
-#define LED 11
+#define LED     11
+#define CHANNEL 16
 
-void noteOn(int cmd, int pitch, int velocity);
-void pitchBend(int channel, int pitch);
+void hello();
+
+// with a 3.3V supply we need 8kHz instead of 16kHz...
+#define CPU_PRESCALE(n) (CLKPR = 0x80, CLKPR = (n))
 
 void setup()
 {
-  // Set MIDI baud rate:
-  MIDI.begin();
+  CPU_PRESCALE(0x01); // ...we also have to edit the Makefile
+
+  pinMode(LED, OUTPUT);
+//  for(;;) //test
+  hello();
 
   Mirf.spi = &MirfHardwareSpi;
   Mirf.cePin = CE;
@@ -22,15 +27,13 @@ void setup()
   Mirf.setRADDR(ADDR);
   Mirf.payload = PAYLOAD;
   Mirf.config();
-
-  pinMode(LED, OUTPUT);
 }
 
 void loop()
 {
   static uint8_t buf[PAYLOAD];
   static int state[4] = {0};
-  static int note[4] = {41, 42, 43, 44}; // 43 et 44 = OK ??? (1 note par pad ???)
+  static int note[4] = {42, 43, 44, 45};
   static int lastPitch = 0;
   int pitch_x, pitch_y;
   char accu =0;
@@ -45,7 +48,7 @@ void loop()
       {
         if (state[i] == 0)
         {
-          MIDI.sendNoteOn(note[i], 255, 1);
+          usbMIDI.sendNoteOn(note[i], 255, CHANNEL);
           state[i] = 1;
         }
       }
@@ -53,21 +56,21 @@ void loop()
       {
         if (state[i] == 1)
         {
-          MIDI.sendNoteOff(note[i], 0, 1);
+          usbMIDI.sendNoteOff(note[i], 0, CHANNEL);
           state[i] = 0;
         }
       }
       accu |= state[i];
-      digitalWrite(LED, accu); //switch the led on only if one of the state was high
     }
+    digitalWrite(LED, accu); //switch the led on only if one of the state was high
 
-    pitch_x = buf[4] * 0x4000 / 256 - 0x2000; // VERIFIER PROTOCOLE !!!
+    pitch_x = buf[4] * 0x4000 / 256 - 0x2000;
     pitch_y = buf[5] * 0x4000 / 256 - 0x2000;
 
     //if (pitch != lastPitch)
     //{
-    MIDI.sendPitchBend(pitch_x, 1);
-    MIDI.sendPitchBend(pitch_y, 1);
+    usbMIDI.sendPitchBend(pitch_x, 1);
+    usbMIDI.sendPitchBend(pitch_y, 1);
     //}
 
     //lastPitch = pitch;
@@ -76,3 +79,15 @@ void loop()
   }
 }
 
+void hello()
+{
+  for (int i=0; i<9; i++)
+  {
+    usbMIDI.sendNoteOn(42 + i, 255, CHANNEL);
+    digitalWrite(LED, HIGH);
+    delay(100);
+    usbMIDI.sendNoteOff(42 + i, 255, CHANNEL);
+    digitalWrite(LED, LOW);
+    delay(50);
+  }
+}

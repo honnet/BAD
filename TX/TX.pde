@@ -4,23 +4,44 @@
 #include "nRF24L01.h"
 #include "MirfHardwareSpiDriver.h"
 
-#define LED     11
 #define LED_PWM 12
 
-enum {SWITCH1, SWITCH2, SWITCH3, SWITCH4, SWITCH_NUM};
-char stateSwitch[SWITCH_NUM] = {0};
+enum {
+  PAD1 = 16,
+  PAD2 = 17,
+  PAD3 = 18,
+  PAD4 = 19,
+  PAD_N = 4
+};
+char stateSwitch[PAD_N] = {0};
 
-#define JOYSTK_X 4
-#define JOYSTK_Y 5
+#define JOYSTK_X 14
+#define JOYSTK_Y 13
 char joystkValueX = 0;
 char joystkValueY = 0;
 
-void ledfeedback();
-void triggerPad();
+void hello();
+void readPad();
 void readJoystk();
+
+// with a 3.3V supply we need 8kHz instead of 16kHz
+#define CPU_PRESCALE(n) (CLKPR = 0x80, CLKPR = (n))
+
 
 void setup()
 {
+  CPU_PRESCALE(0x01); // ...we also have to edit the Makefile
+
+  pinMode(LED, OUTPUT);
+  pinMode(LED_PWM, OUTPUT);
+  hello();
+
+  for (int i=PAD1; i<=PAD4; i++)
+    pinMode(i, INPUT);
+
+  pinMode(JOYSTK_X, INPUT);
+  pinMode(JOYSTK_Y, INPUT);
+
   Mirf.spi = &MirfHardwareSpi;
   Mirf.cePin = CE;
   Mirf.csnPin = CSN;
@@ -28,37 +49,31 @@ void setup()
   Mirf.setTADDR(ADDR);
   Mirf.payload = PAYLOAD;
   Mirf.config();
-
-  pinMode(LED, OUTPUT);
-  pinMode(LED_PWM, OUTPUT);
-  for (int i=SWITCH1; i<SWITCH_NUM; i++) // 0 to 3
-    pinMode(i, INPUT);
-  pinMode(JOYSTK_X, INPUT);
-  pinMode(JOYSTK_Y, INPUT);
 }
+
 
 void loop()
 {
   static uint8_t buf[PAYLOAD];
 
-  triggerPad();
-  readJoystk();
+  readPad();
+  for (int i=0; i<PAD_N; i++)
+    buf[i] = stateSwitch[i+PAD1];
 
-  for (int i=SWITCH1; i<SWITCH_NUM; i++) // 0 to 3
-    buf[i] = stateSwitch[i];
-  buf[4] = (uint8_t)(joystkValueX >> 2);
-  buf[5] = (uint8_t)(joystkValueY >> 2);
+  readJoystk();
+  buf[PAYLOAD-2] = joystkValueX;
+  buf[PAYLOAD-1] = joystkValueY;
 
   Mirf.send(buf);
   while(Mirf.isSending());
 }
 
-void triggerPad()
+void readPad()
 {
   char accu = 0;
-  for (int i=SWITCH1; i<SWITCH_NUM; i++)
+  for (int i=0; i<PAD_N; i++)
   {
-    stateSwitch[i] = digitalRead(i);
+    stateSwitch[i] = digitalRead(i+PAD1);
     accu |= stateSwitch[i]; //switch the led on only if one of the state was high
   }
   digitalWrite(LED, accu);
@@ -66,10 +81,19 @@ void triggerPad()
 
 void readJoystk()
 {
-  joystkValueX = analogRead(JOYSTK_X);
-  joystkValueY = analogRead(JOYSTK_Y);
+  joystkValueX = analogRead(JOYSTK_X) >> 2; // keep only 8 significant bits...
+  joystkValueY = analogRead(JOYSTK_Y) >> 2; // ...out of the 10 obtained.
 
-  analogWrite(LED_PWM, (joystkValueX+joystkValueY)>>3); // divide by 2**3
+  analogWrite(LED_PWM, (joystkValueX+joystkValueY)/2);
 }
 
-
+void hello()
+{
+  for (int i=0; i<9; i++)
+  {
+    digitalWrite(LED, HIGH);
+    delay(100);
+    digitalWrite(LED, LOW);
+    delay(50);
+  }
+}

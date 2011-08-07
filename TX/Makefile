@@ -27,7 +27,8 @@ TARGET=TX
 ARDUINO_LIBS=SPI
 
 # Arduino CPU Speed
-F_CPU=16000000
+#F_CPU=16000000
+F_CPU=8000000
 
 # Port where we can find the arduino (Normaly ttyACM* or ttyUSB*)
 #ARDUINO_PORT=/dev/ttyUSB0
