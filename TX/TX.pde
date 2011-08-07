@@ -4,8 +4,6 @@
 #include "nRF24L01.h"
 #include "MirfHardwareSpiDriver.h"
 
-#define LED_PWM 12
-
 enum {
   PAD1 = 16,
   PAD2 = 17,
@@ -24,23 +22,14 @@ void hello();
 void readPad();
 void readJoystk();
 
-// with a 3.3V supply we need 8kHz instead of 16kHz
-#define CPU_PRESCALE(n) (CLKPR = 0x80, CLKPR = (n))
-
 
 void setup()
 {
+  // with a 3.3V supply we need 8kHz instead of 16kHz
   CPU_PRESCALE(0x01); // ...we also have to edit the Makefile
 
   pinMode(LED, OUTPUT);
-  pinMode(LED_PWM, OUTPUT);
   hello();
-
-  for (int i=PAD1; i<=PAD4; i++)
-    pinMode(i, INPUT);
-
-  pinMode(JOYSTK_X, INPUT);
-  pinMode(JOYSTK_Y, INPUT);
 
   Mirf.spi = &MirfHardwareSpi;
   Mirf.cePin = CE;
@@ -58,7 +47,7 @@ void loop()
 
   readPad();
   for (int i=0; i<PAD_N; i++)
-    buf[i] = stateSwitch[i+PAD1];
+    buf[i] = stateSwitch[i];
 
   readJoystk();
   buf[PAYLOAD-2] = joystkValueX;
@@ -67,6 +56,7 @@ void loop()
   Mirf.send(buf);
   while(Mirf.isSending());
 }
+
 
 void readPad()
 {
@@ -83,16 +73,14 @@ void readJoystk()
 {
   joystkValueX = analogRead(JOYSTK_X) >> 2; // keep only 8 significant bits...
   joystkValueY = analogRead(JOYSTK_Y) >> 2; // ...out of the 10 obtained.
-
-  analogWrite(LED_PWM, (joystkValueX+joystkValueY)/2);
 }
 
 void hello()
 {
-  for (int i=0; i<9; i++)
+  for (int i=0; i<6; i++)
   {
     digitalWrite(LED, HIGH);
-    delay(100);
+    delay(50);
     digitalWrite(LED, LOW);
     delay(50);
   }

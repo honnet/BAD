@@ -7,6 +7,7 @@
 
 #define PAYLOAD 6
 #define LED     11
-#define CHANNEL 16
+
+#define CPU_PRESCALE(n) (CLKPR = 0x80, CLKPR = (n))
 
 #endif

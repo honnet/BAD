@@ -4,20 +4,17 @@
 #include "nRF24L01.h"
 #include "MirfHardwareSpiDriver.h"
 
-#define LED     11
 #define CHANNEL 16
 
 void hello();
 
-// with a 3.3V supply we need 8kHz instead of 16kHz...
-#define CPU_PRESCALE(n) (CLKPR = 0x80, CLKPR = (n))
 
 void setup()
 {
+  // with a 3.3V supply we need 8kHz instead of 16kHz...
   CPU_PRESCALE(0x01); // ...we also have to edit the Makefile
 
   pinMode(LED, OUTPUT);
-//  for(;;) //test
   hello();
 
   Mirf.spi = &MirfHardwareSpi;
@@ -28,6 +25,7 @@ void setup()
   Mirf.payload = PAYLOAD;
   Mirf.config();
 }
+
 
 void loop()
 {
@@ -42,7 +40,7 @@ void loop()
   {
     Mirf.getData(buf);
 
-    for (int i = 0; i < 3; i++) // 4 pads
+    for (int i = 0; i < 4; i++) // 4 pads
     {
       if (buf[i])
       {
@@ -81,13 +79,15 @@ void loop()
 
 void hello()
 {
-  for (int i=0; i<9; i++)
+  for (int i=0; i<5; i++)
   {
     usbMIDI.sendNoteOn(42 + i, 255, CHANNEL);
     digitalWrite(LED, HIGH);
-    delay(100);
+    delay(50);
     usbMIDI.sendNoteOff(42 + i, 255, CHANNEL);
     digitalWrite(LED, LOW);
     delay(50);
   }
 }
+
+
