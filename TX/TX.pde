@@ -4,6 +4,8 @@
 #include "nRF24L01.h"
 #include "MirfHardwareSpiDriver.h"
 
+#define ABS(a) (((a) < 0) ? -(a) : (a))
+
 enum {
   PAD1 = 16,
   PAD2 = 17,
@@ -71,8 +73,12 @@ void readPad()
 
 void readJoystk()
 {
-  joystkValueX = analogRead(JOYSTK_X) >> 2; // keep only 8 significant bits...
-  joystkValueY = analogRead(JOYSTK_Y) >> 2; // ...out of the 10 obtained.
+  if (ABS(joystkValueX - analogRead(JOYSTK_X)>>2) > 1<<2 ||
+      ABS(joystkValueY - analogRead(JOYSTK_Y)>>2) > 1<<2)
+  {
+    joystkValueX = analogRead(JOYSTK_X) >> 2; // keep only 8 significant bits...
+    joystkValueY = analogRead(JOYSTK_Y) >> 2; // ...out of the 10 obtained.
+  }
 }
 
 void hello()

@@ -32,7 +32,8 @@ void loop()
   static uint8_t buf[PAYLOAD];
   static int state[4] = {0};
   static int note[4] = {42, 43, 44, 45};
-  static int lastPitch = 0;
+  static int lastPitch_x = 0;
+  static int lastPitch_y = 0;
   int pitch_x, pitch_y;
   char accu =0;
 
@@ -65,13 +66,13 @@ void loop()
     pitch_x = buf[4] * 0x4000 / 256 - 0x2000;
     pitch_y = buf[5] * 0x4000 / 256 - 0x2000;
 
-    //if (pitch != lastPitch)
-    //{
-    usbMIDI.sendPitchBend(pitch_x, 1);
-    usbMIDI.sendPitchBend(pitch_y, 1);
-    //}
-
-    //lastPitch = pitch;
+    if (pitch_x != lastPitch_x || pitch_y != lastPitch_y)
+    {
+      usbMIDI.sendPitchBend(pitch_x, CHANNEL);
+      usbMIDI.sendPitchBend(pitch_y, CHANNEL);
+      lastPitch_x = pitch_x;
+      lastPitch_y = pitch_y;
+    }
 
     Mirf.flushRx();
   }
