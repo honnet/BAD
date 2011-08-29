@@ -34,7 +34,7 @@ void loop()
   static uint8_t note[4] = {42, 43, 44, 45};
   static uint8_t lastPitch_x = 0;
   static uint8_t lastPitch_y = 0;
-  uint8_t pitccharh_x, pitch_y;
+  uint8_t pitch_x, pitch_y;
   uint8_t accu =0;
 
   if(Mirf.dataReady())
@@ -58,7 +58,7 @@ void loop()
           usbMIDI.sendNoteOff(note[i], 0, CHANNEL);
           state[i] = 0;
         }
-      }char
+      }
       accu |= state[i];
     }
     digitalWrite(LED, accu); //switch the led on only if one of the state was high
@@ -66,12 +66,14 @@ void loop()
     pitch_x = (buf[4] << 6) - 0x2000; // = buf[4] * 0x4000 / 256 - 0x2000
     pitch_y = (buf[5] << 6) - 0x2000; // = buf[5] * 0x4000 / 256 - 0x2000
 
-    if (pitch_x != lastPitch_x || pitch_y != lastPitch_y)
+    char pitchChanged = (pitch_x != lastPitch_x || pitch_y != lastPitch_y);
+    if (pitchChanged)
     {
-      usbMIDI.sendpitchbend(pitch_x, CHANNEL);
+      usbMIDI.sendPitchBend(pitch_x, CHANNEL);
       usbMIDI.sendAfterTouch(pitch_y, CHANNEL); // for another kind of effect
       lastPitch_x = pitch_x;
       lastPitch_y = pitch_y;
+      digitalWrite(LED, pitchChanged); //switch the led on if the pich changed
     }
 
     Mirf.flushRx();
@@ -83,12 +85,11 @@ void hello()
   for (uint8_t i=0; i<5; i++)
   {
     usbMIDI.sendNoteOn(42 + i, 255, CHANNEL);
-    digitalWrite(LED, HIGH);char
-    delay(50);
+    digitalWrite(LED, HIGH);
+    delay(100);
     usbMIDI.sendNoteOff(42 + i, 255, CHANNEL);
     digitalWrite(LED, LOW);
     delay(50);
   }
 }
-
 

@@ -7,16 +7,16 @@
 #define ABS(a) (((a) < 0) ? -(a) : (a))
 
 enum {
-  PAD1 = 16,
-  PAD2 = 17,
-  PAD3 = 18,
-  PAD4 = 19,
+  PAD1 = 18,
+  PAD2 = 19,
+  PAD3 = 20,
+  PAD4 = 21,
   PAD_N = 4
 };
 int8_t stateSwitch[PAD_N] = {0};
 
-#define JOYSTK_X 14
-#define JOYSTK_Y 13
+#define JOYSTK_X 16
+#define JOYSTK_Y 17
 int16_t joystkValueX = 0;
 int16_t joystkValueY = 0;
 
@@ -73,11 +73,15 @@ void readPad()
 
 void readJoystk()
 {
-  if (ABS(joystkValueX - analogRead(JOYSTK_X)>>2) > 1<<2 ||
-      ABS(joystkValueY - analogRead(JOYSTK_Y)>>2) > 1<<2)
+  int8_t newJoystkValueX = analogRead(JOYSTK_X)>>2;
+  int8_t newJoystkValueY = analogRead(JOYSTK_Y)>>2;
+  const uint8_t THRESHOLD = 1<<3; //neglect up to the 3th LSB
+
+  if ( ABS(joystkValueX - newJoystkValueX) > THRESHOLD ||
+       ABS(joystkValueY - newJoystkValueY) > THRESHOLD )
   {
-    joystkValueX = analogRead(JOYSTK_X) >> 2; // keep only 8 significant bits...
-    joystkValueY = analogRead(JOYSTK_Y) >> 2; // ...out of the 10 obtained.
+    joystkValueX = newJoystkValueX; // keep only 8 significant bits...
+    joystkValueY = newJoystkValueY; // ...out of the 10 obtained.
   }
 }
 
@@ -88,6 +92,7 @@ void hello()
     digitalWrite(LED, HIGH);
     delay(50);
     digitalWrite(LED, LOW);
-    delay(50);
+    delay(100);
   }
 }
+
