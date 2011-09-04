@@ -1,4 +1,5 @@
 #include <SPI.h>
+#include <Wire.h>
 #include "common.h"
 #include "Mirf.h"
 #include "nRF24L01.h"
@@ -8,6 +9,27 @@
 #define JOY_X 16
 #define JOY_Y 17
 #define N_PADS 4
+
+#define MMA7660addr   0x4c
+#define MMA7660_X     0x00
+#define MMA7660_Y     0x01
+#define MMA7660_Z     0x02
+#define MMA7660_TILT  0x03
+#define MMA7660_SRST  0x04
+#define MMA7660_SPCNT 0x05
+#define MMA7660_INTSU 0x06
+#define MMA7660_MODE  0x07
+#define MMA7660_SR    0x08
+#define MMA7660_PDET  0x09
+#define MMA7660_PD    0x0A
+
+class Acceleration
+{
+ public:
+ char x;
+ char y;
+ char z;
+};
 
 typedef enum {
   PAD1 = 18,
@@ -26,6 +48,26 @@ void hello();
 void readPads();
 void readJoy();
 
+void mma7660_init(void)
+{
+  Wire.begin();
+  Wire.beginTransmission( MMA7660addr);
+  Wire.send(MMA7660_MODE);
+  Wire.send(0x00);
+  Wire.endTransmission();
+
+  Wire.beginTransmission( MMA7660addr);
+  Wire.send(MMA7660_SR);
+  Wire.send(0x07);  //   Samples/Second Active and Auto-Sleep Mode
+  Wire.endTransmission();
+
+  Wire.beginTransmission( MMA7660addr);
+  Wire.send(MMA7660_MODE);
+  Wire.send(0x01);//active mode
+  Wire.endTransmission();
+
+}
+
 void setup()
 {
   // with a 3.3V supply we need 8MHz instead of 16MHz
@@ -35,6 +77,8 @@ void setup()
 
   pinMode(LED, OUTPUT);
   hello();
+
+  mma7660_init();        // join i2c bus (address optional for master)
 
   Mirf.spi = &MirfHardwareSpi;
   Mirf.cePin = CE;
@@ -103,6 +147,31 @@ void readJoy()
     joyValY = newJoyValY;
     joyPressed = true;
   }
+}
+
+Acceleration readAccelero()
+{
+  unsigned char val[3];
+  int count = 0;
+  val[0] = val[1] = val[2] = 64;
+  Wire.requestFrom(0x4c, 3);    // request 3 bytes from slave device 0x4c
+
+  while(Wire.available())
+  {
+    if(count < 3)
+      while ( val[count] > 63 )  // reload the damn thing it is bad
+        val[count] = Wire.receive();
+    count++;
+  }
+
+  // transform the 7 bit signed number into an 8 bit signed number.
+  Acceleration ret;
+
+  ret.x = ((char)(val[0] << 2)) / 4;
+  ret.y = ((char)(val[1] << 2)) / 4;
+  ret.z = ((char)(val[2] << 2)) / 4;
+
+  return ret;
 }
 
 void hello()

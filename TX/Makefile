@@ -23,8 +23,8 @@ MCU=atmega32u4
 # Project name
 TARGET=TX
 
-# Used libraries. BUG: Now only one is allowed (more will make compile errors)
-ARDUINO_LIBS=SPI
+# Used libraries.
+ARDUINO_LIBS=SPI Wire
 
 # Arduino CPU Speed
 #F_CPU=16000000
