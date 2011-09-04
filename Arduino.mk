@@ -180,12 +180,14 @@ endif
 endif
 
 # General arguments / libraries
-SYS_LIBS      = $(patsubst %,$(ARDUINO_LIB_PATH)/%,$(ARDUINO_LIBS))
-ARD_LIB_FILES = $(wildcard $(SYS_LIBS)/*.cpp)
-SYS_INCLUDES  = $(patsubst %,-I%,$(SYS_LIBS))
-SYS_OBJS      = $(patsubst $(ARDUINO_LIB_PATH)/%,\
-			$(OBJDIR)/%, \
-			$(SYS_LIBS)/$(ARDUINO_LIBS).o)
+SYS_LIBS      = $(addprefix $(ARDUINO_LIB_PATH)/,$(ARDUINO_LIBS))
+ARD_LIB_WILD  = $(addsuffix /*.cpp,$(SYS_LIBS))
+ARD_LIB_UTIL_WILD = $(addsuffix /utility/*.c,$(SYS_LIBS))
+ARD_LIB_FILES = $(wildcard $(ARD_LIB_WILD)) $(wildcard $(ARD_LIB_UTIL_WILD))
+SYS_INCLUDES  = $(addprefix -I,$(SYS_LIBS)) $(addprefix -I,$(addsuffix /utility/,$(SYS_LIBS)))
+
+SYS_OBJS      = $(addprefix $(OBJDIR)/,$(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(notdir $(ARD_LIB_FILES)))))
+VPATH += $(SYS_LIBS) $(addsuffix /utility/,$(SYS_LIBS))
 
 # all the objects!
 OBJS            = $(LOCAL_OBJS) $(CORE_OBJS) $(SYS_OBJS)
@@ -307,13 +309,9 @@ $(OBJDIR)/%.o: $(ARDUINO_CORE_PATH)/%.cpp
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
 # librarie files
-$(OBJDIR)/%.o: $(ARD_LIB_FILES)
+$(OBJDIR)/%.o: %.cpp
 	$(ECHO) $(SYS_LIBS)
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $< -o $@
-
-$(OBJDIR)/%.o: $(ARD_LIB_FILES)
-	$(ECHO) $(SYS_LIBS)
-	$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
 
 # various object conversions
 $(OBJDIR)/%.hex: $(OBJDIR)/%.elf
@@ -388,7 +386,6 @@ all: 		$(OBJDIR) $(TARGET_HEX)
 
 $(OBJDIR):
 		mkdir $(OBJDIR)
-		mkdir $(patsubst %,$(OBJDIR)/%,$(ARDUINO_LIBS))
 
 $(TARGET_ELF): 	$(OBJS) $(SYS_OBJS)
 		$(CC) $(LDFLAGS) -o $@ $(OBJS)
@@ -427,6 +424,17 @@ depends:	$(DEPS)
 
 kill:
 		-killall cu
+
+debug:
+	@echo $(SYS_LIBS)
+	@echo
+	@echo $(ARD_LIB_WILD)
+	@echo
+	@echo $(ARD_LIB_FILES)
+	@echo
+	@echo $(SYS_INCLUDES)
+	@echo
+	@echo $(SYS_OBJS)
 
 .PHONY:	all clean depends upload raw_upload reset
 
