@@ -8,11 +8,10 @@
 
 void hello();
 
-
 void setup()
 {
-  // with a 3.3V supply we need 8kHz instead of 16kHz...
-  CPU_PRESCALE(0x01); // ...we also have to edit the Makefile
+  // with a 3.3V supply we need 8MHz instead of 16MHz...
+  SET_CPU_FREQ;
 
   pinMode(LED, OUTPUT);
   hello();
@@ -21,60 +20,63 @@ void setup()
   Mirf.cePin = CE;
   Mirf.csnPin = CSN;
   Mirf.init();
-  Mirf.setRADDR(ADDR);
+  Mirf.setRADDR((byte*)ADDR);
   Mirf.payload = PAYLOAD;
   Mirf.config();
 }
 
-
 void loop()
 {
   static uint8_t buf[PAYLOAD];
-  static uint8_t state[4] = {0};
-  static uint8_t note[4] = {42, 43, 44, 45};
-  static uint8_t lastPitch_x = 0;
-  static uint8_t lastPitch_y = 0;
-  uint8_t pitch_x, pitch_y;
-  uint8_t accu =0;
+
+  static int padsNotes[N_PADS] = {42, 43, 44, 45};
+  static bool padsStates[N_PADS] = {0};
+  bool padsPressed = false;
+
+  static int joyCtrls[2] = {14, 15};
+  static uint8_t joyLastVals[2] = {0};
+  uint8_t joyVals[2] = {0};
+  bool pitchChanged = false;
 
   if(Mirf.dataReady())
   {
     Mirf.getData(buf);
 
-    for (int i = 0; i < 4; i++) // 4 pads
+    padsPressed = false;
+    for (int pad = 0; pad < N_PADS; pad++)
     {
-      if (buf[i])
+      if (buf[pad] && !padsStates[pad])
       {
-        if (state[i] == 0)
-        {
-          usbMIDI.sendNoteOn(note[i], 255, CHANNEL);
-          state[i] = 1;
-        }
+        usbMIDI.sendNoteOn(padsNotes[pad], 255, CHANNEL);
+        padsStates[pad] = true;
+        padsPressed = true;
       }
-      else
+      else if (padsStates[pad])
       {
-        if (state[i] == 1)
-        {
-          usbMIDI.sendNoteOff(note[i], 0, CHANNEL);
-          state[i] = 0;
-        }
+        usbMIDI.sendNoteOff(padsNotes[pad], 0, CHANNEL);
+        padsStates[pad] = false;
       }
-      accu |= state[i];
     }
-    digitalWrite(LED, accu); //switch the led on only if one of the state was high
 
-    pitch_x = (buf[4] << 6) - 0x2000; // = buf[4] * 0x4000 / 256 - 0x2000
-    pitch_y = (buf[5] << 6) - 0x2000; // = buf[5] * 0x4000 / 256 - 0x2000
+    joyVals[0] = (buf[N_PADS + 0] << 6) - 0x2000;
+    joyVals[1] = (buf[N_PADS + 1] << 6) - 0x2000;
+    // [ val * 0x4000 / 256 - 0x2000 ]
 
-    char pitchChanged = (pitch_x != lastPitch_x || pitch_y != lastPitch_y);
-    if (pitchChanged)
+    if (joyVals[0] != joyLastVals[0] || joyVals[1] != joyLastVals[1])
     {
-      usbMIDI.sendPitchBend(pitch_x, CHANNEL);
-      usbMIDI.sendAfterTouch(pitch_y, CHANNEL); // for another kind of effect
-      lastPitch_x = pitch_x;
-      lastPitch_y = pitch_y;
-      digitalWrite(LED, pitchChanged); //switch the led on if the pich changed
+      usbMIDI.sendControlChange(joyCtrls[0], joyVals[0], CHANNEL);
+      usbMIDI.sendControlChange(joyCtrls[1], joyVals[1], CHANNEL);
+      joyLastVals[0] = joyVals[0];
+      joyLastVals[1] = joyVals[1];
+      pitchChanged = true;
     }
+
+    usbMIDI.send_now();
+
+    if (padsPressed || pitchChanged)
+      digitalWrite(LED, HIGH);
+    else
+      digitalWrite(LED, LOW);
 
     Mirf.flushRx();
   }
