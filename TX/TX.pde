@@ -83,14 +83,15 @@ void readPads()
 
 void readJoy()
 {
-  const uint8_t threshold = 1 << 3; //neglect up to the 3th LSB
+  const int16_t THRESHOLD = 1 << 3; //neglect up to the 3th LSB
 
-  int8_t newJoyValX = analogRead(JOY_X) >> 2;
-  int8_t newJoyValY = analogRead(JOY_Y) >> 2;
+  int16_t newJoyValX = analogRead(JOY_X) >> 3;
+  int16_t newJoyValY = ABS( ((analogRead(JOY_Y) >> 2) - 127) );
+  newJoyValY = newJoyValY>127? 127 : newJoyValY;
 
   joyPressed = false;
-  if (ABS(joyValX - newJoyValX) > threshold ||
-      ABS(joyValY - newJoyValY) > threshold)
+  if (ABS(joyValX - newJoyValX) > THRESHOLD ||
+      ABS(joyValY - newJoyValY) > THRESHOLD)
   {
     joyValX = newJoyValX; // keep only 8 significant bits...
     joyValY = newJoyValY; // ...out of the 10 obtained.
