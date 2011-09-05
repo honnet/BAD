@@ -19,8 +19,8 @@ typedef enum {
 bool padsPressed = false;
 bool padsStates[N_PADS] = {false};
 bool joyPressed = true;
-int16_t joyValX = 0;
-int16_t joyValY = 0;
+uint16_t joyValX = 0;
+uint16_t joyValY = 0;
 
 void hello();
 void readPads();
@@ -30,6 +30,8 @@ void setup()
 {
   // with a 3.3V supply we need 8MHz instead of 16MHz
   SET_CPU_FREQ;
+
+  Serial.begin(115200);
 
   pinMode(LED, OUTPUT);
   hello();
@@ -52,8 +54,9 @@ void loop()
     buf[i] = padsStates[i] ? 1 : 0;
 
   readJoy();
-  buf[N_PADS + 0] = (uint8_t)joyValX;
-  buf[N_PADS + 1] = (uint8_t)joyValY;
+  buf[N_PADS + 0] = (uint8_t)(joyValX >> 0);
+  buf[N_PADS + 1] = (uint8_t)(joyValX >> 8);
+  buf[N_PADS + 2] = (uint8_t)joyValY;
 
 #ifdef DEBUG_LED
   if (padsPressed || joyPressed)
@@ -69,7 +72,7 @@ void loop()
 void readPads()
 {
   padsPressed = false;
-  for (uint8_t i = 0; i < N_PADS; i++)
+  for (int i = 0; i < N_PADS; i++)
   {
     if(digitalRead(PAD1 + i) == HIGH)
     {
@@ -83,18 +86,21 @@ void readPads()
 
 void readJoy()
 {
-  const int16_t THRESHOLD = 1 << 3; //neglect up to the 3th LSB
-
-  int16_t newJoyValX = analogRead(JOY_X) >> 3;
-  int16_t newJoyValY = ABS( ((analogRead(JOY_Y) >> 2) - 127) );
-  newJoyValY = newJoyValY>127? 127 : newJoyValY;
-
+  uint16_t newJoyValX = 16383 - analogRead(JOY_X) * (16384 / 1023);
+  uint16_t newJoyValY = ABS(((analogRead(JOY_Y) >> 2) - 127));
+  newJoyValY = newJoyValY > 127 ? 127 : newJoyValY;
+  
   joyPressed = false;
-  if (ABS(joyValX - newJoyValX) > THRESHOLD ||
-      ABS(joyValY - newJoyValY) > THRESHOLD)
+  
+  if (ABS(joyValX - newJoyValX) > (1 << 5))
   {
-    joyValX = newJoyValX; // keep only 8 significant bits...
-    joyValY = newJoyValY; // ...out of the 10 obtained.
+    joyValX = newJoyValX;
+    joyPressed = true;
+  }
+  
+  if (ABS(joyValY - newJoyValY) > (1 << 3))
+  {
+    joyValY = newJoyValY;
     joyPressed = true;
   }
 }
