@@ -1,4 +1,4 @@
 doc/*
 .*.swp
 .obj
-
+.DS_Store
