@@ -4,6 +4,7 @@
 #include "Mirf.h"
 #include "nRF24L01.h"
 #include "MirfHardwareSpiDriver.h"
+#include "vector.h"
 
 #define DEBUG_LED
 #define JOY_X 16
@@ -23,14 +24,6 @@
 #define MMA7660_PDET  0x09
 #define MMA7660_PD    0x0A
 
-class Acceleration
-{
- public:
- char x;
- char y;
- char z;
-};
-
 typedef enum {
   PAD1 = 18,
   PAD2 = 19,
@@ -47,6 +40,7 @@ uint16_t joyValY = 0;
 void hello();
 void readPads();
 void readJoy();
+float readAccelero();
 
 void mma7660_init(void)
 {
@@ -93,6 +87,8 @@ void loop()
 {
   static uint8_t buf[PAYLOAD];
 
+  const uint8_t a = (readAccelero() + 1.0f) * (1 << 7) / 2 - 1;
+
   readPads();
   for (int i = 0; i < N_PADS; i++)
     buf[i] = padsStates[i] ? 1 : 0;
@@ -101,6 +97,7 @@ void loop()
   buf[N_PADS + 0] = (uint8_t)(joyValX >> 0);
   buf[N_PADS + 1] = (uint8_t)(joyValX >> 8);
   buf[N_PADS + 2] = (uint8_t)joyValY;
+  buf[N_PADS + 3] = a;
 
 #ifdef DEBUG_LED
   if (padsPressed || joyPressed)
@@ -120,7 +117,7 @@ void readPads()
   {
     if(digitalRead(PAD1 + i) == HIGH)
     {
-      padsStates[i] = true; //switch the led on only if one of the state was high
+      padsStates[i] = true;
       padsPressed = true;
     }
     else
@@ -133,15 +130,15 @@ void readJoy()
   uint16_t newJoyValX = 16383 - analogRead(JOY_X) * (16384 / 1023);
   uint16_t newJoyValY = ABS(((analogRead(JOY_Y) >> 2) - 127));
   newJoyValY = newJoyValY > 127 ? 127 : newJoyValY;
-  
+
   joyPressed = false;
-  
+
   if (ABS(joyValX - newJoyValX) > (1 << 5))
   {
     joyValX = newJoyValX;
     joyPressed = true;
   }
-  
+
   if (ABS(joyValY - newJoyValY) > (1 << 3))
   {
     joyValY = newJoyValY;
@@ -149,12 +146,14 @@ void readJoy()
   }
 }
 
-Acceleration readAccelero()
+float readAccelero()
 {
+  static float oldVal = 0.0f;
   unsigned char val[3];
   int count = 0;
+  float newVal;
   val[0] = val[1] = val[2] = 64;
-  Wire.requestFrom(0x4c, 3);    // request 3 bytes from slave device 0x4c
+  Wire.requestFrom(0x4c, 3);
 
   while(Wire.available())
   {
@@ -164,14 +163,28 @@ Acceleration readAccelero()
     count++;
   }
 
-  // transform the 7 bit signed number into an 8 bit signed number.
-  Acceleration ret;
-
+  Vector ret;
   ret.x = ((char)(val[0] << 2)) / 4;
   ret.y = ((char)(val[1] << 2)) / 4;
   ret.z = ((char)(val[2] << 2)) / 4;
+  ret.normalize();
 
-  return ret;
+  newVal = ret.y;
+
+  //FIXME: Here the '+= oldVal' seems to set newVal to zero
+  //       which is annoying... To be fixed...
+  //       Values have to be filtered as they fluctuate a lot.
+  //newVal += oldVal;
+  //Serial.print("old:");
+  //Serial.println(oldVal);
+  //Serial.print("ret:");
+  //Serial.println(ret.y);
+  //Serial.print("new:");
+  //Serial.println(newVal);
+
+  oldVal = newVal;
+
+  return newVal;
 }
 
 void hello()

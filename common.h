@@ -19,7 +19,8 @@
 
 #define N_PADS 4
 #define N_JOYS 1
-#define PAYLOAD (N_PADS + 3 * N_JOYS)
+#define N_ACCS 1
+#define PAYLOAD (N_PADS + 3 * N_JOYS + N_ACCS)
 #define LED 11
 
 #endif

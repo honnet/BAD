@@ -38,6 +38,10 @@ void loop()
   uint16_t joyVals[2] = {0};
   bool pitchChanged = false;
 
+  static const int accCtrl = 2;
+  static uint8_t oldAccVal = 0;
+  uint8_t accVal;
+
   if(Mirf.dataReady())
   {
     Mirf.getData(buf);
@@ -59,6 +63,14 @@ void loop()
 
     joyVals[0] = (uint16_t)buf[N_PADS + 0] | ((uint16_t)buf[N_PADS + 1] << 8);
     joyVals[1] = buf[N_PADS + 2];
+    accVal = buf[N_PADS + 3];
+
+    if (accVal != oldAccVal)
+    {
+      usbMIDI.sendControlChange(accCtrl, accVal, CHANNEL);
+      pitchChanged = true;
+      oldAccVal = accVal;
+    }
 
     if (joyVals[0] != joyLastVals[0])
     {
@@ -66,7 +78,7 @@ void loop()
       pitchChanged = true;
       joyLastVals[0] = joyVals[0];
     }
-    
+
     if (joyVals[1] != joyLastVals[1])
     {
       usbMIDI.sendControlChange(joyCtrls[1], joyVals[1], CHANNEL);
@@ -76,7 +88,7 @@ void loop()
 
     usbMIDI.send_now();
 
-    if (padsPressed || pitchChanged)
+    if (padsPressed || pitchChanged)
       digitalWrite(LED, HIGH);
     else
       digitalWrite(LED, LOW);
