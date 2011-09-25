@@ -1,13 +1,27 @@
-soft :
- * finish the joystick processing
- * interruptions on pads for a better reactivity
- * hack the compiler-upload chain to avoid mandatory reset at each upload
- * hack the bootloader/firmware of usb-midi (to change the midi device name)
- * optimiser consumption & reliability
- * website, videos, pictures...
+legend:
+ C => Clement
+ D => Drix
+ J => Jimmy
+ M => Mangu
+ * => not affected yet
 
-hard :
- * test new pads in foam rubber, piezzo or other ?
- * test different alimentation (battery + switched-mode power supply / voltage regulator...)
- * put a non-usb midi output anyway ?
+soft:
+ D  optimise consumption (+ reliability?)
+ JM website, videos, pictures...
+!C  hack the compiler-upload chain to avoid mandatory reset at each upload
+!C  hack the bootloader/firmware of usb-midi (to change the midi device name)
+ D  interruptions on pads for a better reactivity
 
+hard:
+ J  casing: protect BAD + solderings
+ J  micro connections on PCB (like teagueduino)
+ D  test different alimentation (switched-mode power supply / voltage regulator...)
+ DJ test new pads in foam rubber, piezo, fabric or other ?
+ J  test fabric ribbon cable
+ J  cell battery (CB): change holder + test charger/rechargeable CB
+ J  put a non-usb midi output anyway
+
+
+soft + hard => BAD V2.0
+ * MIDI TRANSCIEVER !!
+ * GENERIC WIRELESS SENSOR INTERFACE (use of compass, accelerometer...)
