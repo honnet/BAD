@@ -1,5 +1,8 @@
 Welcome to the alpha(1) version of the BodyAirDrum project !
 
+A few details are available here:
+https://github.com/honnet/BAD/wiki
+
 The goal of the project is to design a midi instrument that cordlessly triggers samples using wearable pads placed on the body.
 The system is composed of:
  - 2 Arduinos (Teensy in our case)
