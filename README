@@ -18,7 +18,7 @@ Jimmy & Drix, with the phenomenal help of Clement Moussu.
 
 
 (1) Note: We are currently developping a more advanced version at the Tangible Display Lab.
-For any question or suggestion, feel free to contact us : (jim or drix)@tangibledisplay.com
+For any question or suggestion, feel free to contact me : Contact(at)Honnet.eu
 
 (2) Note: we used the nRF24L01 drivers from https://github.com/aaronds/arduino-nrf24l01
 An Arduino port of the tinkerer.eu library. It works with the Sparkfun nRF24L01+ modules.
